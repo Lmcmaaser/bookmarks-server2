@@ -49,12 +49,12 @@ router
 router
   .route('/bookmarks/:id')
   .get((req, res) => {
-    const { bookmarkId } = req.params
+    const { id } = req.params
 
-    const bookmark = store.bookmarks.find(c => c.id == bookmarkId)
+    const bookmark = store.bookmarks.find(c => c.id == id)
   // make sure we found a bookmark
     if (!bookmark) {
-      logger.error(`Bookmark with id: ${bookmarkId} not found.`)
+      logger.error(`Bookmark with id: ${id} not found.`)
       return res
         .status(404)
         .send('Bookmark Not Found')
@@ -63,12 +63,12 @@ router
     res.json(bookmark)
   })
   .delete((req, res) => {
-    const { bookmarkId } = req.params
+    const { id } = req.params
 
-    const bookmarkIndex = store.bookmarks.findIndex(b => b.id === bookmarkId)
+    const bookmarkIndex = store.bookmarks.findIndex(b => b.id === id)
 
     if (bookmarkIndex === -1) {
-      logger.error(`Bookmark with id: ${bookmarkId} not found.`)
+      logger.error(`Bookmark with id: ${id} not found.`)
       return res
         .status(404)
         .send('Bookmark Not Found')
@@ -76,7 +76,7 @@ router
 
     store.bookmarks.splice(bookmarkIndex, 1)
 
-    logger.info(`Bookmark with id: ${bookmarkId} deleted.`)
+    logger.info(`Bookmark with id: ${id} deleted.`)
     res
       .status(204)
       .end()
