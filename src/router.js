@@ -1,6 +1,6 @@
 const express = require('express')
 const uuid = require('uuid/v4')
-// const { isWebUri } = require('valid-url')
+const { isWebUri } = require('valid-url')
 const logger = require('./logger')
 const store = require('./store')
 const router = express.Router()
@@ -16,6 +16,7 @@ router
   // adds a bookmark
   .post(bodyParser, (req, res) => {
     for (const field of ['title', 'url', 'rating']) {
+      console.log(req.body)
       if (!req.body[field]) {
         logger.error(`${field} is required`)
         return res.status(400).send(`'${field}' is required`)

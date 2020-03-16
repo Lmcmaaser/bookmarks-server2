@@ -1,0 +1,6 @@
+{"message":"title is required","level":"error"}
+{"message":"title is required","level":"error"}
+{"message":"Invalid rating '3' supplied","level":"error"}
+{"message":"Bookmark with id: ccbad7a3-8230-413d-b12e-e8971c7e355c created","level":"info"}
+{"message":"Bookmark with id: 6fefa066-56fd-4adc-a342-addbc98ac1c0 created","level":"info"}
+{"message":"Invalid url 'invalid url' supplied","level":"error"}
