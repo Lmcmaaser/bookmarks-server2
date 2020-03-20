@@ -9,16 +9,17 @@ const router = require('./router')
 const { API_TOKEN } = require('./config')
 
 const app = express()
-const morganOption = (NODE_ENV === 'production')
-  ? 'tiny'
-  : 'common';
 
-app.use(morgan(morganOption))
+app.use(morgan((NODE_ENV === 'production') ? 'tiny' : 'common', {
+  skip: () => NODE_ENV === 'test'
+}))
 app.use(cors())
 app.use(helmet())
 
+app.use(router)
+
 app.use(function validateBearerToken(req, res, next) {
-  const apiToken = process.env.API_TOKEN
+  // const apiToken = process.env.API_TOKEN
   const authToken = req.get('Authorization')
   if (!authToken || authToken.split(' ')[1] !== apiToken) {
     logger.error(`Unauthorized request to path: ${req.path}`);
@@ -48,5 +49,11 @@ app.use(function errorHandler(error, req, res, next) {
     console.error(error);
     response = { message: error.message, error}
   }
+  res.status(500).json(response)
 })
+
+app.get('/', (req, res) => {
+  res.send('Hello, world!')
+})
+
 module.exports = app;
