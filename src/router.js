@@ -1,6 +1,7 @@
 const express = require('express')
 const uuid = require('uuid/v4')
 const { isWebUri } = require('valid-url')
+const xss = require('xss')
 const logger = require('./logger')
 const store = require('./store')
 const router = express.Router()
@@ -9,9 +10,9 @@ const BookmarksService = require('./bookmarks-service')
 
 const serializeBookmark = bookmark => ({
   id: bookmark.id,
-  title: bookmark.title,
+  title: xss(bookmark.title),
   url: bookmark.url,
-  description: bookmark.description,
+  description: xss(bookmark.description),
   rating: Number(bookmark.rating),
 });
 
@@ -49,55 +50,55 @@ router
       return res.status(400).send(`'url' must be a valid URL`)
     };
 
-    const bookmark = { id: uuid(), title, url, description, rating };
+    const newBookmark = { title, url, description, rating }
 
-    store.bookmarks.push(bookmark);
+   BookmarksService.insertBookmark(
+     req.app.get('db'),
+     newBookmark
+   )
+     .then(bookmark => {
+       logger.info(`Card with id: ${bookmark.id} created.`)
+       res
+         .status(201)
+         .location(`/bookmarks/${bookmark.id}`)
+         .json(serializeBookmark(bookmark))
+     })
+     .catch(next)
+ })
 
-    logger.info(`Bookmark with id: ${bookmark.id} created`)
-    res
-      .status(201)
-      .location(`http://localhost:8000/bookmarks/${bookmark.id}`)
-      .json(bookmark)
-  });
-
-//GET and DELETE
-// returns a single bookmark with the given ID
 router
-  .route('/bookmarks/:id')
-  .get((req, res, next) => {
-    const { id } = req.params
-    BookmarksService.getById(req.app.get('db'), id)
-      .then(bookmark => {
-        if (!bookmark) {
-          logger.error(`Bookmark with id: ${id} not found.`)
-          return res.status(404).json({
-            error: { message: `Bookmark Not Found` }
-          })
-        };
-        res.json(serializeBookmark(bookmark))
-      });
-      .catch(next)
-  });
-    res.json(bookmark)
-  });
-  .delete((req, res) => {
-    const { id } = req.params
+ .route('/bookmarks/:id')
+ .all((req, res, next) => {
+   const { id } = req.params
+   BookmarksService.getById(req.app.get('db'), id)
+     .then(bookmark => {
+       if (!bookmark) {
+         logger.error(`Bookmark with id: ${id} not found.`)
+         return res.status(404).json({
+           error: { message: `Bookmark Not Found` }
+         })
+       }
+       res.bookmark = bookmark
+       next()
+     })
+     .catch(next)
 
-    const bookmarkIndex = store.bookmarks.findIndex(b => b.id === id);
-
-    if (bookmarkIndex === -1) {
-      logger.error(`Bookmark with id: ${id} not found.`)
-      return res
-        .status(404)
-        .send('Bookmark Not Found')
-    };
-
-    store.bookmarks.splice(bookmarkIndex, 1)
-
-    logger.info(`Bookmark with id: ${id} deleted.`)
-    res
-      .status(204)
-      .end()
-  });
+ })
+ .get((req, res) => {
+   res.json(serializeBookmark(res.bookmark))
+ })
+ .delete((req, res, next) => {
+   // TODO: update to use db
+   const { id } = req.params
+   BookmarksService.deleteBookmark(
+     req.app.get('db'),
+     id
+   )
+     .then(numRowsAffected => {
+       logger.info(`Card with id: ${id} deleted.`)
+       res.status(204).end()
+     })
+     .catch(next)
+ })
 
 module.exports = router
