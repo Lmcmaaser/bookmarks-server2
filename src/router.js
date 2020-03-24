@@ -1,6 +1,7 @@
 const express = require('express');
 const uuid = require('uuid/v4');
 const { isWebUri } = require('valid-url');
+const path = require('path')
 const xss = require('xss');
 const logger = require('./logger');
 const store = require('./store');
@@ -24,12 +25,14 @@ router
   .get((req, res, next) => {
     BookmarksService.getAllBookmarks(req.app.get('db'))
       .then(bookmarks => {
-        res.json(bookmarks.map(serializeBookmark))
-      });
+        return res.json(bookmarks.map(serializeBookmark))
+      })
       .catch(next)
   });
 
   // adds a bookmark
+router
+  .route('/')
   .post(bodyParser, (req, res, next) => {
     const { title, url, description, rating } = req.body
     const newBookmark = { title, url, description, rating };
@@ -46,20 +49,7 @@ router
     const error = getBookmarkValidationError(newBookmark);
 
     if (error) return res.status(400).send(error);
-
-    BookmarksService.insertBookmark(
-      req.app.get('db'),
-      newBookmark
-    );
-      .then(bookmark => {
-        logger.info(`Bookmark with id ${bookmark.id} created.`)
-        res
-          .status(201)
-          .location(path.posix.join(req.originalUrl, `${bookmark.id}`))
-          .json(serializeBookmark(bookmark))
-      });
-      .catch(next);
-    });
+    // console.log("rating", rating);
     //error handling
     if (!Number.isInteger(rating) || rating < 0 || rating > 5) {
       logger.error(`Invalid rating '${rating}' supplied`)
@@ -71,9 +61,24 @@ router
       return res.status(400).send(`'url' must be a valid URL`)
     };
 
-    const newBookmark = { title, url, description, rating };
+    BookmarksService.insertBookmark(
+      req.app.get('db'),
+      newBookmark
+    )
+      .then(bookmark => {
+        logger.info(`Bookmark with id ${bookmark.id} created.`)
+        res
+          .status(201)
+          .location(path.posix.join(req.originalUrl, `${bookmark.id}`))
+          .json(serializeBookmark(bookmark))
+      })
+      .catch(next)
+    });
 
-   BookmarksService.insertBookmark(
+
+    // const newBookmark = { title, url, description, rating };
+
+   /*BookmarksService.insertBookmark(
      req.app.get('db'),
      newBookmark
    );
@@ -85,10 +90,10 @@ router
          .json(serializeBookmark(bookmark))
      });
      .catch(next);
- });
+ });*/
 
 router
- .route('/:bookmark_id');
+ .route('/:bookmark_id')
  .all((req, res, next) => {
    const { bookmark_id } = req.params
    BookmarksService.getById(req.app.get('db'), bookmark_id)
@@ -100,29 +105,33 @@ router
          });
        };
        res.bookmark = bookmark
-       next()
-     });
+       // next()
+       return res.json(serializeBookmark(res.bookmark))
+     })
      .catch(next);
 
  });
 
- .get((req, res) => {
-   res.json(serializeBookmark(res.bookmark))
- });
-
+ //.get((req, res) => {
+   // res.json(serializeBookmark(res.bookmark))
+ //});
+router
+  .route('/:bookmark_id')
  .delete((req, res, next) => {
    const { bookmark_id } = req.params
    BookmarksService.deleteBookmark(
      req.app.get('db'),
      bookmark_id
-   );
+   )
      .then(numRowsAffected => {
-       logger.info(`Card with id: ${bookmark_id} deleted.`)
+       logger.info(`Bookmark with id: ${bookmark_id} deleted.`)
        res.status(204).end()
-     });
+     })
      .catch(next)
  });
 
+ router
+ .route('/:bookmark_id')
  .patch(bodyParser, (req, res, next) => {
     const { title, url, description, rating } = req.body
     const bookmarkToUpdate = { title, url, description, rating };
@@ -145,7 +154,7 @@ router
       req.app.get('db'),
       req.params.bookmark_id,
       bookmarkToUpdate
-    );
+    )
       .then(numRowsAffected => {
         res.status(204).end()
       })
