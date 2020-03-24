@@ -1,5 +1,5 @@
 const knex = require('knex')
-const fixtures = require('./api/bookmarks-fixtures')
+const fixtures = require('./bookmarks-fixtures')
 const app = require('../src/app')
 
 describe('Bookmarks Endpoints', () => {
